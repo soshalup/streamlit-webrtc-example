@@ -305,9 +305,7 @@ def app_object_detection():
     # PROTOTXT_URL = "https://github.com/robmarkcole/object-detection-app/raw/master/model/MobileNetSSD_deploy.prototxt.txt"  # noqa: E501
     # PROTOTXT_LOCAL_PATH = HERE / "./models/MobileNetSSD_deploy.prototxt.txt"
 
-    MODEL_URL = "https://github.com/robmarkcole/object-detection-app/raw/master/model/MobileNetSSD_deploy.caffemodel"  # noqa: E501
     MODEL_LOCAL_PATH = HERE / "./models/Face_deploy.caffemodel"
-    PROTOTXT_URL = "https://github.com/robmarkcole/object-detection-app/raw/master/model/MobileNetSSD_deploy.prototxt.txt"  # noqa: E501
     PROTOTXT_LOCAL_PATH = HERE / "./models/Face_deploy.prototxt.txt"
 
     CLASSES = [
@@ -335,8 +333,8 @@ def app_object_detection():
     ]
     COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
 
-    download_file(MODEL_URL, MODEL_LOCAL_PATH, expected_size=23147564)
-    download_file(PROTOTXT_URL, PROTOTXT_LOCAL_PATH, expected_size=29353)
+    # download_file(MODEL_URL, MODEL_LOCAL_PATH, expected_size=23147564)
+    # download_file(PROTOTXT_URL, PROTOTXT_LOCAL_PATH, expected_size=29353)
 
     DEFAULT_CONFIDENCE_THRESHOLD = 0.5
 
@@ -367,6 +365,7 @@ def app_object_detection():
                     # then compute the (x, y)-coordinates of the bounding box for
                     # the object
                     idx = int(detections[0, 0, i, 1])
+                    # idx = 0
                     box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                     (startX, startY, endX, endY) = box.astype("int")
 
