@@ -300,16 +300,16 @@ def app_object_detection():
     https://github.com/robmarkcole/object-detection-app
     """
 
-    # MODEL_URL = "https://github.com/robmarkcole/object-detection-app/raw/master/model/MobileNetSSD_deploy.caffemodel"  # noqa: E501
-    # MODEL_LOCAL_PATH = HERE / "./models/MobileNetSSD_deploy.caffemodel"
-    # PROTOTXT_URL = "https://github.com/robmarkcole/object-detection-app/raw/master/model/MobileNetSSD_deploy.prototxt.txt"  # noqa: E501
-    # PROTOTXT_LOCAL_PATH = HERE / "./models/MobileNetSSD_deploy.prototxt.txt"
+    # MODEL_URL = "https://github.com/soshalup/streamlit-webrtc-example/tree/main/models/Face_deploy.caffemodel"
+    # MODEL_LOCAL_PATH = HERE / "./models/Face_deploy.caffemodel"
+    # PROTOTXT_URL = "https://github.com/soshalup/streamlit-webrtc-example/tree/main/models/Face_deploy.prototxt.txt"
+    # PROTOTXT_LOCAL_PATH = HERE / "./models/Face_deploy.prototxt.txt"
 
-    MODEL_LOCAL_PATH = HERE / "./models/Face_deploy.caffemodel"
-    PROTOTXT_LOCAL_PATH = HERE / "./models/Face_deploy.prototxt.txt"
+    caffe = "models/Face_deploy.caffemodel"
+    proto = "models/Face_deploy.prototxt.txt"
 
     CLASSES = [
-        "background",
+        "face", # background
         "aeroplane",
         "bicycle",
         "bird",
@@ -331,7 +331,9 @@ def app_object_detection():
         "train",
         "tvmonitor",
     ]
-    COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
+    EMOTIONS = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral']
+
+    COLORS = np.random.uniform(0, 255, size=(len(EMOTIONS), 3))
 
     # download_file(MODEL_URL, MODEL_LOCAL_PATH, expected_size=23147564)
     # download_file(PROTOTXT_URL, PROTOTXT_LOCAL_PATH, expected_size=29353)
@@ -348,7 +350,7 @@ def app_object_detection():
 
         def __init__(self) -> None:
             self._net = cv2.dnn.readNetFromCaffe(
-                str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH)
+                proto, caffe # str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH)
             )
             self.confidence_threshold = DEFAULT_CONFIDENCE_THRESHOLD
             self.result_queue = queue.Queue()
@@ -364,8 +366,8 @@ def app_object_detection():
                     # extract the index of the class label from the `detections`,
                     # then compute the (x, y)-coordinates of the bounding box for
                     # the object
-                    idx = int(detections[0, 0, i, 1])
-                    # idx = 0
+                    # idx = int(detections[0, 0, i, 1])
+                    idx = 0
                     box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                     (startX, startY, endX, endY) = box.astype("int")
 
@@ -390,7 +392,7 @@ def app_object_detection():
         def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
             image = frame.to_ndarray(format="bgr24")
             blob = cv2.dnn.blobFromImage(
-                cv2.resize(image, (300, 300)), 0.007843, (300, 300), 127.5
+                cv2.resize(image, (300, 300)), 1.0, (300, 300), (104.0, 177.0, 123.0)
             )
             self._net.setInput(blob)
             detections = self._net.forward()
