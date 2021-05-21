@@ -14,6 +14,8 @@ except ImportError:
 
 import av
 import cv2
+from keras.preprocessing import image
+from keras.models import model_from_json
 import matplotlib.pyplot as plt
 import numpy as np
 import pydub
@@ -305,32 +307,11 @@ def app_object_detection():
     # PROTOTXT_URL = "https://github.com/soshalup/streamlit-webrtc-example/tree/main/models/Face_deploy.prototxt.txt"
     # PROTOTXT_LOCAL_PATH = HERE / "./models/Face_deploy.prototxt.txt"
 
-    caffe = "models/Face_deploy.caffemodel"
-    proto = "models/Face_deploy.prototxt.txt"
+    caffe = "models/face_deploy.caffemodel"
+    proto = "models/face_deploy.prototxt.txt"
+    emomodel = model_from_json(open("models/facial_expression_model_structure.json", "r").read())
+    emomodel.load_weights('models/facial_expression_model_weights.h5')
 
-    CLASSES = [
-        "face", # background
-        "aeroplane",
-        "bicycle",
-        "bird",
-        "boat",
-        "bottle",
-        "bus",
-        "car",
-        "cat",
-        "chair",
-        "cow",
-        "diningtable",
-        "dog",
-        "horse",
-        "motorbike",
-        "person",
-        "pottedplant",
-        "sheep",
-        "sofa",
-        "train",
-        "tvmonitor",
-    ]
     EMOTIONS = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral']
 
     COLORS = np.random.uniform(0, 255, size=(len(EMOTIONS), 3))
@@ -355,9 +336,9 @@ def app_object_detection():
             self.confidence_threshold = DEFAULT_CONFIDENCE_THRESHOLD
             self.result_queue = queue.Queue()
 
-        def _annotate_image(self, image, detections):
+        def _annotate_image(self, frame, detections):
             # loop over the detections
-            (h, w) = image.shape[:2]
+            (h, w) = frame.shape[:2]
             result: List[Detection] = []
             for i in np.arange(0, detections.shape[2]):
                 confidence = detections[0, 0, i, 2]
@@ -366,28 +347,42 @@ def app_object_detection():
                     # extract the index of the class label from the `detections`,
                     # then compute the (x, y)-coordinates of the bounding box for
                     # the object
-                    # idx = int(detections[0, 0, i, 1])
-                    idx = 0
                     box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                     (startX, startY, endX, endY) = box.astype("int")
 
-                    name = CLASSES[idx]
+                    # determine the probabilities of each emotion
+                    crop_face = frame[startY:endY, startX:endX]
+                    crop_face = cv2.cvtColor(crop_face, cv2.COLOR_BGR2GRAY)
+                    crop_face = cv2.resize(crop_face, (48, 48))
+
+                    img_pixels = image.img_to_array(crop_face)
+                    img_pixels = np.expand_dims(img_pixels, axis=0)
+                    img_pixels /= 255  # pixels are in scale of [0, 255]. normalize all pixels in scale of [0, 1]
+
+                    predictions = emomodel.predict(img_pixels)  # store probabilities of 7 expressions
+                    max_index = np.argmax(predictions[0])
+                    emo_confidence = predictions[0][max_index]
+                    # max_index = 0
+                    # emo_confidence = 0
+
+                    name = EMOTIONS[max_index]
                     result.append(Detection(name=name, prob=float(confidence)))
 
                     # display the prediction
-                    label = f"{name}: {round(confidence * 100, 2)}%"
-                    cv2.rectangle(image, (startX, startY), (endX, endY), COLORS[idx], 2)
+                    # label = f"{name}: {round(confidence * 100, 2)}%"
+                    label = f"{name}: {round(emo_confidence * 100, 2)}%"
+                    cv2.rectangle(frame, (startX, startY), (endX, endY), COLORS[max_index], 2)
                     y = startY - 15 if startY - 15 > 15 else startY + 15
                     cv2.putText(
-                        image,
+                        frame,
                         label,
                         (startX, y),
                         cv2.FONT_HERSHEY_SIMPLEX,
                         0.5,
-                        COLORS[idx],
+                        COLORS[max_index],
                         2,
                     )
-            return image, result
+            return frame, result
 
         def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
             image = frame.to_ndarray(format="bgr24")
